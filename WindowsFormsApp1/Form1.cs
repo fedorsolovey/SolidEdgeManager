@@ -10,12 +10,12 @@ namespace WindowsFormsApp1
 {
     public partial class Form1 : Form
     {
-        private enum ColumnType { name, value };
+        private enum ColumnType { name, value, type };
 
         private double step = 0.01;
 
         private int selectedRow = 0;
-
+        
         SolidEdgeFramework.Application application = null;
         SolidEdgeFramework.Documents documents = null;
         SolidEdgeFramework.SolidEdgeDocument document = null;
@@ -29,15 +29,18 @@ namespace WindowsFormsApp1
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            dataGridView1.ColumnCount = 2;
+            dataGridView1.ColumnCount = 3;
             dataGridView1.Columns[(int)ColumnType.name].Name = @"Имя";
             dataGridView1.Columns[(int)ColumnType.value].Name = @"Значение";
+            dataGridView1.Columns[(int)ColumnType.type].Name = @"Единицы";
             dataGridView1.Columns[(int)ColumnType.name].ReadOnly = true;
             dataGridView1.Columns[(int)ColumnType.value].ReadOnly = false;
+            dataGridView1.Columns[(int)ColumnType.type].ReadOnly = true;
             dataGridView1.Columns[(int)ColumnType.name].ValueType = typeof(string);
             dataGridView1.Columns[(int)ColumnType.value].ValueType = typeof(double);
+            dataGridView1.Columns[(int)ColumnType.type].ValueType = typeof(string);
             dataGridView1.Columns[(int)ColumnType.value].DefaultCellStyle.Format = "N3";
-
+            dataGridView1.RowHeadersVisible = false;
             numeric.Value = (decimal)step;
 
             ConnectToSolid();
@@ -61,11 +64,28 @@ namespace WindowsFormsApp1
             for (int i = 1; i <= variableList.Count; i++)
             {
                 variableListItem = variableList.Item(i);
-                dynamic f = variableListItem.Formula.Length == 0;
-                string value = variableListItem.Value.ToString("0.000"); ;
-                object[] row = { variableListItem.DisplayName, variableListItem.Value };
+                dynamic f = variableListItem.UnitsType;
+                string rate = GetRate((UnitTypeConstants)variableListItem.UnitsType);
+                object[] row = { variableListItem.DisplayName, variableListItem.Value, rate };
                 dataGridView1.Rows.Add(row);
                 dataGridView1.Rows[i - 1].DefaultCellStyle.BackColor = (variableListItem.Formula.Length == 0 ? Color.White : Color.Coral);
+            }
+        }
+
+        private string GetRate(UnitTypeConstants type)
+        {
+            switch (type)
+            {
+                case UnitTypeConstants.igUnitDistance:
+
+                case UnitTypeConstants.igUnitScalar:
+                    return "м";
+
+                case UnitTypeConstants.igUnitDensity:
+                    return "кг / м^3";
+
+                default:
+                    return "";
             }
         }
 
@@ -73,6 +93,7 @@ namespace WindowsFormsApp1
         {
             double newValue = (double)dataGridView1.Rows[e.RowIndex].Cells[(int)ColumnType.value].Value;
             dynamic variableListItem = variableList.Item(selectedRow + 1);
+            dynamic x = newValue;
             variableListItem.Value = newValue;
         }
 
@@ -135,6 +156,16 @@ namespace WindowsFormsApp1
                 }
 
                 variables = (Variables)document.Variables;
+
+                object globalObject = null;
+
+                //application.GetGlobalParameter(ApplicationGlobalConstants.seApplicationGlobalShowUnitsValueField, ref globalObject);
+
+                SolidEdgeFramework.UnitsOfMeasure uom = null;
+                uom = document.UnitsOfMeasure;
+                globalObject = uom.Item(1);
+                double dHexSize = 0;
+
             }
             catch (Exception ex)
             {
